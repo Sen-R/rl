@@ -81,7 +81,7 @@ class EpsilonGreedyPolicy(Policy):
         epsilon (float): probability of taking random action
         seed (None, int, array_like): (optional) random seed
         """
-        super.__init__()
+        super().__init__()
         self.q = q
         self.epsilon = epsilon
         self.rs = torch.Generator()
@@ -90,8 +90,8 @@ class EpsilonGreedyPolicy(Policy):
 
     def act(self, states):
         v = self.q(states)
-        n_actions = v.shape[1]
-        best_actions = torch(argmax(v, dim=-1))
+        n_actions = v.shape[-1]
+        best_actions = torch.argmax(v, dim=-1)
         random_actions = torch.randint(0, n_actions, best_actions.shape,
                                        generator=self.rs)
         be_greedy = torch.rand(best_actions.size(),
@@ -101,3 +101,61 @@ class EpsilonGreedyPolicy(Policy):
 class GreedyPolicy(EpsilonGreedyPolicy):
     def __init__(self, q, seed=None):
         super().__init__(q=q, epsilon=0., seed=None)
+
+class DiscreteModulePolicy(nn.Module, StochasticPolicy):
+    """
+    A stochastic policy for a discrete action space
+    """
+    def __init__(self, pi):
+        """
+        Params
+        ======
+        pi (nn.Module): Module that maps states to soft-max action preferences
+        """
+        nn.Module.__init__(self)
+        StochasticPolicy.__init__(self, pathwise=False)
+        self.pi = pi
+
+    def stoch_act(self, states):
+        probs = F.softmax(self.pi(states), dim=-1)
+        return distributions.Categorical(probs)
+
+class DeterministicModulePolicy(nn.Module, Policy):
+    """
+    Provide a Policy interface to a deterministic policy module. Output is
+    an action vector or disc
+    """
+    def __init__(self, pi):
+        """
+        Params
+        ======
+        pi (nn.Module): Module that maps states to actions
+        """
+        nn.Module.__init__(self)
+        Policy.__init__(self)
+        self.pi = pi
+
+    def act(self, states):
+        return self.pi(states)
+
+class NormalModulePolicy(nn.Module, StochasticPolicy):
+    """
+    A stochastic policy for a continuous action space. Output actions are
+    independent and normally distributed.
+    """
+    def __init__(self, pi, pathwise=None):
+        """
+        Params
+        ======
+        pi (nn.Module): Module that maps states to a tuple of action means and
+                        standard deviations
+        pathwise (bool): If true, use `rsample` to draw differentiable samples
+        """
+        nn.Module.__init__(self)
+        StochasticPolicy.__init__(self, pathwise=pathwise)
+        self.pi = pi
+
+    def stoch_act(self, states):
+        means, stds = self.pi(states)
+        stds = F.relu(stds) # Safety
+        return distributions.Normal(means, stds)
