@@ -6,7 +6,7 @@ def soft_update(local_network, target_network, tau):
     """
     for l_param, t_param in zip(local_network.parameters(),
                                 target_network.parameters()):
-        t_param.data.copy_(tau * l_param + (1. - tau) * t_param)
+        t_param.detach().copy_(tau * l_param + (1. - tau) * t_param)
 
 def hard_update(local_network, target_network):
     """

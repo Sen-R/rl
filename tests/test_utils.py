@@ -41,5 +41,5 @@ def test_soft_update(tau):
         e = torch.ones_like(t) * (tau * l_init + (1-tau) * t_init)
         print (l, t, e, sep='\n\n')
         assert torch.allclose(t, e)
-    assert False
+    
     
