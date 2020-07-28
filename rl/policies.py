@@ -64,7 +64,49 @@ class TabularPolicy(nn.Module, StochasticPolicy):
     def stoch_act(self, states):
         """ Return action(s) """
         return distributions.Categorical(self(states))
+
+class RandomDiscretePolicy(Policy):
+    """
+    Random policy over discrete action space.
+
+    NB although this is really a stochastic policy, we never differentiate
+    through the stochasticity, so we subclass from Policy.
+
+    Params
+    ======
+    action_size (int): size of action space
+    seed (None, int): (optional) random seed
+    """
+
+    def __init__(self, action_size, seed=None):
+        super().__init__()
+        self.action_size = action_size
+        self.rs = torch.Generator()
+        if seed is not None:
+            self.rs.manual_seed(seed)
+
+    def act(self, states):
+        actions_shape = () if len(states.shape)==0 else (states.shape[0],)
+        return torch.randint(0, self.action_size, actions_shape,
+                             generator=self.rs)
+
+class GreedyPolicy(Policy):
+    """
+    Greedy policy over discrete action space.
+    """
     
+    def __init__(self, q):
+        """
+        Params
+        ======
+        q (nn.Module): module that maps state(s) to vector(s) of action-values
+        """
+        super().__init__()
+        self.q = q
+
+    def act(self, states):
+        return torch.argmax(self.q(states), dim=-1)
+        
 class EpsilonGreedyPolicy(Policy):
     """
     Epsilon greedy policy over discrete action space.
@@ -73,34 +115,29 @@ class EpsilonGreedyPolicy(Policy):
     as a deterministic policy + noise, as the policy has no learnable
     parameters so we'll never want to backpropagate through the policy."""
 
-    def __init__(self, q, epsilon, seed=None):
+    def __init__(self, action_size, q, epsilon, seed=None):
         """
         Params
         ======
+        action_size (int): size of action space
         q (nn.Module): module that maps state(s) to vector(s) of action-values
         epsilon (float): probability of taking random action
-        seed (None, int, array_like): (optional) random seed
+        seed (int): (optional) random seed
         """
         super().__init__()
-        self.q = q
+        self.random_policy = RandomDiscretePolicy(action_size, seed)
+        self.greedy_policy = GreedyPolicy(q)
         self.epsilon = epsilon
         self.rs = torch.Generator()
         if seed is not None:
             self.rs.manual_seed(seed)
 
     def act(self, states):
-        v = self.q(states)
-        n_actions = v.shape[-1]
-        best_actions = torch.argmax(v, dim=-1)
-        random_actions = torch.randint(0, n_actions, best_actions.shape,
-                                       generator=self.rs)
+        best_actions = self.greedy_policy.act(states)
+        random_actions = self.random_policy.act(states)
         be_greedy = torch.rand(best_actions.size(),
                                generator=self.rs) >= self.epsilon
         return torch.where(be_greedy, best_actions, random_actions)
-
-class GreedyPolicy(EpsilonGreedyPolicy):
-    def __init__(self, q, seed=None):
-        super().__init__(q=q, epsilon=0., seed=None)
 
 class DiscreteModulePolicy(nn.Module, StochasticPolicy):
     """

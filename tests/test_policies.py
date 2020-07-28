@@ -2,6 +2,18 @@ import pytest
 import numpy as np
 from rl.policies import *
 
+d_states = torch.tensor([1, 3, 6, 2])
+d_state = torch.tensor(4)
+
+prefs = torch.tensor([[0., 0., 0., 0.]] * 6 + [[1., 2., -1., -3.]])
+
+state_action_probs =  torch.tensor([[0.25, 0.25, 0.25, 0.25]] * 2 +
+                                   [[0.2583, 0.7020, 0.0350, 0.0047]] +
+                                   [[0.25, 0.25, 0.25, 0.25]])
+
+state_size = 7
+action_size = 4
+
 class TestPolicy:
     def test_construction_fails(self):
         with pytest.raises(TypeError):
@@ -16,83 +28,86 @@ class TestTabularPolicy:
     def test_construction(self):
         p = TabularPolicy(3, 2)
 
-    def test_pref_shape(self, d_state_size, d_action_size):
-        p = TabularPolicy(d_state_size, d_action_size)
-        assert list(p.prefs.shape) == [d_state_size, d_action_size]
-        
-    def test_call_v(self, d_state_size, d_action_size, d_states):
-        p = TabularPolicy(d_state_size, d_action_size)
-        probs = p(d_states)
-        assert list(probs.shape) == [len(d_states), d_action_size]
-        assert torch.allclose(probs, torch.tensor(1./d_action_size))
+    def test_pref_shape(self):
+        p = TabularPolicy(state_size, action_size)
+        assert list(p.prefs.shape) == [state_size, action_size]
 
-    def test_call_s(self, d_state_size, d_action_size, d_state):
-        p = TabularPolicy(d_state_size, d_action_size)
+    def test_call(self):
+        p = TabularPolicy(state_size, action_size)
+        probs = p(d_states)
+        assert list(probs.shape) == [len(d_states), action_size]
+        assert torch.allclose(probs, torch.tensor(1./action_size))
         probs = p(d_state)
-        assert list(probs.shape) == [d_action_size]
-        assert torch.allclose(probs, torch.tensor(1./d_action_size))
-        
-    def test_call2(self, d_state_size, d_action_size, d_states, prefs,
-                   state_action_probs):
-        p = TabularPolicy(d_state_size, d_action_size)
+        assert list(probs.shape) == [action_size]
+        assert torch.allclose(probs, torch.tensor(1./action_size))
         p.prefs.data.copy_(prefs)
         probs = p(d_states)
         assert torch.allclose(probs, state_action_probs, rtol=0.01, atol=0.001)
-
-    def test_stoch_act(self, d_state_size, d_action_size, d_states, prefs,
-                       state_action_probs):
-        p = TabularPolicy(d_state_size, d_action_size)
+        
+    def test_stoch_act(self):
+        p = TabularPolicy(state_size, action_size)
         p.prefs.data.copy_(prefs)
         actions = p.stoch_act(d_states)
         assert isinstance(actions, torch.distributions.Categorical)
         assert torch.allclose(actions.probs, state_action_probs,
                               rtol=0.01, atol=0.001)
 
-    def test_act(self, d_state_size, d_action_size, d_states, d_state):
-        p = TabularPolicy(d_state_size, d_action_size)
+    def test_act(self):
+        p = TabularPolicy(state_size, action_size)
         actions = p.act(d_states)
         assert list(actions.shape) == [len(d_states)]
         action = p.act(d_state)
         assert list(action.shape) == []
 
-    def test_parameters(self, d_state_size, d_action_size):
-        p = TabularPolicy(d_state_size, d_action_size)
+    def test_parameters(self):
+        p = TabularPolicy(state_size, action_size)
         params = {k: v for k, v in p.named_parameters()}
         assert params == {'prefs': p.prefs}
             
+a = [0., 0., 1., 0.]
+
+def q(states):
+    squeeze = len(states.shape)==0
+    n_states = 1 if squeeze else states.shape[0]
+    qvectors = torch.tensor([a]).repeat(n_states, 1)
+    if squeeze:
+        qvectors.squeeze_()
+    return qvectors    
         
-class TestEpsilonGreedyPolicy:
-    a = [0., 0., 1., 0.]
-    
-    def q(self, states):
-        n_states = 1 if len(states.shape)==0 else states.shape[0]
-        qvectors = torch.tensor([self.a]).repeat(n_states, 1)
-        if len(states.shape)==0:
-            qvectors.squeeze_()
-        return qvectors    
-
+class TestDiscretePolicies:
     def test_construction(self):
-        pi = EpsilonGreedyPolicy(self.q, 0.)
+        pi = RandomDiscretePolicy(action_size, seed=None)
+        pi = GreedyPolicy(q) 
+        pi = EpsilonGreedyPolicy(len(a), q, 0., seed=24)
 
-    def test_seed_setting(self):
-        pi = EpsilonGreedyPolicy(self.q, 0., seed=42)
+    @pytest.mark.parametrize("policy", [RandomDiscretePolicy(1, seed=42),
+                                        EpsilonGreedyPolicy(len(a),
+                                                            q, 0.,
+                                                            seed=42)])
+    def test_seed_setting(self, policy):
         expected = [0.88226926, 0.91500396, 0.38286376]
-        generated = [torch.rand([], generator=pi.rs).numpy() for _ in expected]
+        generated = [torch.rand([], generator=policy.rs).numpy()
+                     for _ in expected]
         assert np.allclose(expected, generated, atol=1e-8)
 
     @pytest.mark.parametrize("states,shape", [(3, []),
-                                             ([4, 1], [2])])
+                                              ([3], [1]),
+                                              ([4, 1], [2])])
     def test_act_shape(self, states, shape):
-        pi = EpsilonGreedyPolicy(self.q, 0.)
+        pi = EpsilonGreedyPolicy(len(a), q, 0.)
         actions = pi.act(torch.tensor(states))
         assert list(actions.shape)==shape
 
-    def test_act_range(self):
-        pi = EpsilonGreedyPolicy(self.q, 1.)
+    @pytest.mark.parametrize("pi", [RandomDiscretePolicy(1, seed=42),
+                                    GreedyPolicy(q),
+                                    EpsilonGreedyPolicy(len(a),
+                                                        q, 0.,
+                                                        seed=42)])
+    def test_act_range(self, pi):
         states = range(20) # values don't matter
         actions = pi.act(torch.tensor(states))
         assert torch.all(actions >= 0)
-        assert torch.all(actions < len(self.a))
+        assert torch.all(actions < len(a))
         
     @pytest.mark.slow
     @pytest.mark.random
@@ -102,29 +117,24 @@ class TestEpsilonGreedyPolicy:
         n_inner = 10000
         n_outer = 10
         n_total = n_inner * n_outer
-        best_action = np.argmax(self.a)
+        best_action = np.argmax(a)
         best_selected = 0
-        pi = EpsilonGreedyPolicy(self.q, epsilon, seed=int(278633*epsilon))
+        pi = EpsilonGreedyPolicy(action_size, q, epsilon,
+                                 seed=int(278633*epsilon))
         for _ in range(n_outer):
             actions = pi.act(torch.zeros(n_inner))
             best_selected += torch.sum(actions==best_action).numpy()
-        p_best = (1. - epsilon) + epsilon / len(self.a)
+        p_best = (1. - epsilon) + epsilon / len(a)
         expected = p_best * n_total
         tol = 1.96 * np.sqrt(p_best * (1.-p_best) * n_total) # 1 S.D.
         assert np.abs(best_selected - expected) <= tol
 
-    @pytest.mark.slow
     def test_greedy(self):
-        n_inner = 10000
-        n_outer = 10
-        n_total = n_inner * n_outer
-        best_action = np.argmax(self.a)
+        best_action = torch.tensor(np.argmax(a))
         best_selected = 0
-        pi = GreedyPolicy(self.q, seed=278633)
-        for _ in range(n_outer):
-            actions = pi.act(torch.zeros(n_inner))
-            best_selected += torch.sum(actions==best_action).numpy()
-        assert best_selected == n_total
+        pi = GreedyPolicy(q)
+        actions = pi.act(torch.zeros(5))
+        assert torch.allclose(actions, best_action)
 
 class TestModulePolicies:
     state_size = 2
