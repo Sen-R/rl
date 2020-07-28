@@ -90,11 +90,15 @@ class TestDiscretePolicies:
                      for _ in expected]
         assert np.allclose(expected, generated, atol=1e-8)
 
+    @pytest.mark.parametrize("pi", [RandomDiscretePolicy(1, seed=42),
+                                    GreedyPolicy(q),
+                                    EpsilonGreedyPolicy(len(a),
+                                                        q, 0.,
+                                                        seed=42)])
     @pytest.mark.parametrize("states,shape", [(3, []),
                                               ([3], [1]),
                                               ([4, 1], [2])])
-    def test_act_shape(self, states, shape):
-        pi = EpsilonGreedyPolicy(len(a), q, 0.)
+    def test_act_shape(self, pi, states, shape):
         actions = pi.act(torch.tensor(states))
         assert list(actions.shape)==shape
 
@@ -163,7 +167,7 @@ class TestModulePolicies:
         assert isinstance(self.norm_policy.stoch_act(self.states),
                           distributions.Normal)
     
-    def test_actions(self):
+    def test_act_shapes(self):
         assert (list(self.disc_policy.act(self.state).shape) == [])
         assert (list(self.disc_policy.act(self.states).shape) ==
                 [len(self.states)])
