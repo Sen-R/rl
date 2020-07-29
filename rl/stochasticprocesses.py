@@ -92,18 +92,33 @@ class AdditiveNoiseScrambler(Scrambler):
         actions = actions.clip(self.lb, self.ub)
         return actions
 
+    def _required_shape(self, num_agents, action_size, vector_actions):
+        if vector_actions:
+            return (num_agents, action_size)
+        else:
+            if num_agents != 1:
+                raise ValueError('Must have vector_actions true for multiple'
+                                 ' agents')
+            return (action_size,)
+
 class OUScrambler(AdditiveNoiseScrambler):
     def __init__(self, num_agents, action_size, time_const, std_dev, lb=-1.,
-                 ub=1., random_state=None):
-        x_inf = np.zeros((num_agents, action_size))
+                 ub=1., vector_actions=True, random_state=None):
+        """
+        If vector_actions is true, returns a column vector of actions even
+        when there is only one agent (useful e.g. for Unity environments)
+        """
+        x_inf = np.zeros(self._required_shape(num_agents, action_size,
+                                              vector_actions))
         process = OUProcess(x_inf, time_const, std_dev,
                             random_state=random_state)
         super().__init__(process, lb, ub)
 
 class GaussianWhiteNoiseScrambler(AdditiveNoiseScrambler):
     def __init__(self, num_agents, action_size, std_dev, lb=-1., ub=1.,
-                 random_state=None):
-        mu = np.zeros((num_agents, action_size))
-        sigma = std_dev * np.zeros((num_agents, action_size))
+                 vector_actions=True, random_state=None):
+        shape = self._required_shape(num_agents, action_size, vector_actions)
+        mu = np.zeros(shape)
+        sigma = std_dev * np.ones(shape)
         process = GaussianWhiteNoiseProcess(mu, sigma, random_state)
         super().__init__(process, lb, ub)
