@@ -25,8 +25,8 @@ class GaussianWhiteNoiseProcess(StochasticProcess):
         random_state (None, int, array_like, RandomState): (optional) random
                                                            state
         """
-        self.mu = mu
-        self.sigma = sigma
+        self.mu = np.array(mu)
+        self.sigma = np.array(sigma)
         super().__init__(x_init=mu, random_state=random_state)
 
     def sample(self):
