@@ -38,7 +38,7 @@ def sarsa_estimate(rewards, next_states, dones, Q, policy, gamma=1.,
         next_values = Q(next_states).gather(-1, next_actions)
         next_values = next_values.squeeze() # collapse dimensions again
     else:
-        next_values = Q(next_states, next_actions)
+        next_values = Q(next_states, next_actions).squeeze()
     return rewards + gamma * (1. - dones) * next_values
 
 def sarsamax_estimate(rewards, next_states, dones, Q, gamma=1.):
