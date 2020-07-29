@@ -1,6 +1,6 @@
 import torch
 
-def sarsa_estimate(rewards, next_states, Q, policy, gamma=1.,
+def sarsa_estimate(rewards, next_states, dones, Q, policy, gamma=1.,
                    discrete_actions=True):
     """
     Sarsa estimator of the value of the current state-action pair given
@@ -21,6 +21,7 @@ def sarsa_estimate(rewards, next_states, Q, policy, gamma=1.,
     ======
     rewards (Tensor): reward(s) for taking current action(s)
     next_states (Tensor): state(s) reached after taking current action(s)
+    dones (Tensor): done flag(s) for next state(s)
     Q (nn.Module): Q module with properties described above
     policy (nn.Module): policy derived from Q (e.g. `EpsilonGreedyPolicy`)
     gamma (float): discount factor
@@ -38,18 +39,18 @@ def sarsa_estimate(rewards, next_states, Q, policy, gamma=1.,
         next_values = next_values.squeeze() # collapse dimensions again
     else:
         next_values = Q(next_states, next_actions)
-    return rewards + gamma * next_values
+    return rewards + gamma * (1. - dones) * next_values
 
-def sarsamax_estimate(rewards, next_states, Q, gamma=1.):
+def sarsamax_estimate(rewards, next_states, dones, Q, gamma=1.):
     """
     Sarsamax estimator of the value of the current state-action pair. See
     docstring for `sarsa_estimate` for further details. This is similar
     except it doesn't need a policy. It also only works on discrete action
     spaces, so assumes the Q function maps states to action value arrays.
     """
-    return rewards + gamma * torch.max(Q(next_states), dim=-1)
+    return rewards + gamma * (1. - dones) * torch.max(Q(next_states), dim=-1)
 
-def expected_sarsa_estimate(rewards, next_states, Q, policy, gamma=1.):
+def expected_sarsa_estimate(rewards, next_states, dones, Q, policy, gamma=1.):
     """
     Expected Sarsa estimator of the value of the current state-action pair.
     See docstring for `sarsa_estimate` for further details.
@@ -59,9 +60,9 @@ def expected_sarsa_estimate(rewards, next_states, Q, policy, gamma=1.):
     """
     pi = policy.stoch_act(next_states).probs
     expected_next_values = torch.sum(pi * Q(next_states), dim=-1)
-    return rewards + gamma * expected_next_values
+    return rewards + gamma * dones * expected_next_values
 
-def td0_estimate(rewards, next_states, V, gamma=1.):
+def td0_estimate(rewards, next_states, dones, V, gamma=1.):
     """
     TD(0) estimate of current state's value given observations of reward and
     next state.
@@ -75,4 +76,4 @@ def td0_estimate(rewards, next_states, V, gamma=1.):
     V (nn.Module): state value function
     gamma (float): discount factor
     """
-    return rewards + gamma * V(next_states)
+    return rewards + gamma * (1. - dones) * V(next_states)

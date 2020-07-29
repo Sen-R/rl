@@ -37,32 +37,36 @@ class ContinuousPolicy:
         else:
             return a.repeat(states.shape[0], 1)
 
-@pytest.mark.parametrize("rewards,next_states",
-                         [(0.1, [1.]), ([0.1, -0.2], [[1, 2], [3, 4]])])
+@pytest.mark.parametrize("rewards,next_states,dones",
+                         [(0.1, [1.], 0.),
+                          ([0.1, -0.2], [[1, 2], [3, 4]], [0., 1.])])
 @pytest.mark.parametrize("next_action", [0, 1, 2, 3])
-def test_sarsa_discrete(rewards, next_states, next_action):
+def test_sarsa_discrete(rewards, next_states, dones, next_action):
     rewards = torch.tensor(rewards)
     next_states = torch.tensor(next_states)
+    dones = torch.tensor(dones)
     gamma = 0.9
-    exp_value = sarsa_estimate(rewards, next_states, Q_discrete,
+    exp_value = sarsa_estimate(rewards, next_states, dones, Q_discrete,
                                ForcePolicy(next_action),
                                gamma, discrete_actions=True)
     next_actions = ForcePolicy(next_action).act(next_states)
-    should_be = rewards + gamma * q_d[next_action]*torch.ones(len(next_states))
+    should_be = (rewards + gamma * (1. - dones) *
+                 q_d[next_action]*torch.ones(len(next_states)))
     assert torch.allclose(exp_value, should_be)
 
-@pytest.mark.parametrize("rewards, next_states",
-                         [([0.5], [[0.1, 0.3]]), (0.5, [0.1, 0.3]),
-                          ([0.2, 0.1], [[0.1, 0.2], [0.3, 0.4]])])
-def test_sarsa_continuous(rewards, next_states):
+@pytest.mark.parametrize("rewards, next_states, dones",
+                         [([0.5], [[0.1, 0.3]], [0.]), (0.5, [0.1, 0.3], 0.),
+                          ([0.2, 0.1], [[0.1, 0.2], [0.3, 0.4]], [0., 1.])])
+def test_sarsa_continuous(rewards, next_states, dones):
     rewards = torch.tensor(rewards)
     next_states = torch.tensor(next_states)
+    dones = torch.tensor(dones)
     gamma = 0.9
     policy = ContinuousPolicy()
-    exp_value = sarsa_estimate(rewards, next_states, Q_continuous,
+    exp_value = sarsa_estimate(rewards, next_states, dones, Q_continuous,
                                policy, gamma, discrete_actions=False)
-    should_be = rewards + gamma * Q_continuous(next_states,
-                                               policy.act(next_states))
+    should_be = (rewards + gamma * (1. - dones) *
+                 Q_continuous(next_states, policy.act(next_states)))
     assert torch.allclose(exp_value, should_be)
     
 @pytest.mark.todo
