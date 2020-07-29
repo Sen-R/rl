@@ -22,8 +22,15 @@ class TD0Experience:
     def __repr__(self):
         return repr(self.to_dict())
 
+    def __eq__(self, other):
+        return all((np.array_equal(self.state, other.state),
+                    np.array_equal(self.action, other.action),
+                    np.array_equal(self.reward, other.reward),
+                    np.array_equal(self.next_state, other.next_state),
+                    np.array_equal(self.done, other.done)))
+
     @staticmethod
-    def stacked(experiences):
+    def to_stacked(experiences):
         """ Static method to convert an iterable containing Experience objects
         into a tuple of vstacked states, actions rewards, next_states and
         dones """
@@ -36,6 +43,11 @@ class TD0Experience:
 
         return states, actions, rewards, next_states, dones
 
+    @staticmethod
+    def from_stacked(states, actions, rewards, next_states, dones):
+        """ Convert arrays into sequence of TD0Experiences """
+        return (TD0Experience(s, a, r, ns, d) for s, a, r, ns, d in
+                zip(states, actions, rewards, next_states, dones))
 
 class ExperienceReplayBuffer:
     """

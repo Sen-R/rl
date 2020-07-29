@@ -32,10 +32,16 @@ class TestTD0Experience:
         dones = np.array([0, 0, 1, 0])
         print("original:\n=========")
         print(states, actions, rewards, next_states, dones, sep='\n\n')
-
-        experiences = [TD0Experience(*e) for e in zip(states, actions, rewards,
-                                                     next_states, dones)]
-        nps, npa, npr, npns, npd = TD0Experience.stacked(experiences)
+        print("\nexperiences:\n============")
+        experiences = list(TD0Experience.from_stacked(states, actions, rewards,
+                                                 next_states, dones))
+        print(experiences)
+        expected = [TD0Experience(*e) for e in zip(states, actions, rewards,
+                                                   next_states, dones)]
+        print(expected)
+        for act, exp in zip(experiences, expected):
+            assert act == exp
+        nps, npa, npr, npns, npd = TD0Experience.to_stacked(experiences)
         print("\n\nstacked:\n========")
         print(nps, npa, npr, npns, npd, sep='\n\n')
         for e, v in zip([states, actions, rewards, next_states, dones],
