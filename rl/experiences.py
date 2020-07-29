@@ -2,7 +2,7 @@ from collections import deque
 from collections.abc import Iterable
 import numpy as np
 
-class TDExperience:
+class TD0Experience:
     """ Class to encapsulate a single-step experience, e.g. for use in
     Q-learning """
     def __init__(self, state, action, reward, next_state, done):

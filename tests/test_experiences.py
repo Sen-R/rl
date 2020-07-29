@@ -1,10 +1,10 @@
 import pytest
 from rl.experiences import *
 
-class TestTDExperience:
+class TestTD0Experience:
     def test_construction(self):
         s, a, r, ns, d = 1, 3, 0.1, 2, True
-        e = TDExperience(s, a, r, ns, d)
+        e = TD0Experience(s, a, r, ns, d)
         assert e.state == s
         assert e.action == a
         assert e.reward == r
@@ -13,7 +13,7 @@ class TestTDExperience:
 
     def test_to_dict(self):
         s, a, r, ns, d = 1, 3, 0.1, 2, True
-        ed = TDExperience(s, a, r, ns, d).to_dict()
+        ed = TD0Experience(s, a, r, ns, d).to_dict()
         assert ed['state'] == s
         assert ed['action'] == a
         assert ed['reward'] == r
@@ -21,7 +21,7 @@ class TestTDExperience:
         assert ed['done'] == d
 
     def test_repr(self):
-        e = TDExperience(1, 3, 0.1, 2, True)
+        e = TD0Experience(1, 3, 0.1, 2, True)
         assert repr(e)==repr(e.to_dict())
 
     def test_stacked(self):
@@ -33,9 +33,9 @@ class TestTDExperience:
         print("original:\n=========")
         print(states, actions, rewards, next_states, dones, sep='\n\n')
 
-        experiences = [TDExperience(*e) for e in zip(states, actions, rewards,
+        experiences = [TD0Experience(*e) for e in zip(states, actions, rewards,
                                                      next_states, dones)]
-        nps, npa, npr, npns, npd = TDExperience.stacked(experiences)
+        nps, npa, npr, npns, npd = TD0Experience.stacked(experiences)
         print("\n\nstacked:\n========")
         print(nps, npa, npr, npns, npd, sep='\n\n')
         for e, v in zip([states, actions, rewards, next_states, dones],
