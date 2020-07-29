@@ -44,12 +44,13 @@ class StochasticPolicy(Policy):
         corresponding action distributions """
         pass
         
-        
 class TabularPolicy(nn.Module, StochasticPolicy):
-    """ Stochastic policy over discrete state and action spaces. Parameters
+    """
+    Stochastic policy over discrete state and action spaces. Parameters
     are a 2-dimensional Tensor, each row representing the soft-max action
     preferences for a given state. The policy is also a torch Module,
-    allowing easy implementation of policy gradient methods."""
+    allowing easy implementation of policy gradient methods.
+    """
 
     def __init__(self, state_size, action_size):
         nn.Module.__init__(self)
@@ -138,7 +139,7 @@ class EpsilonGreedyPolicy(Policy):
         be_greedy = torch.rand(best_actions.size(),
                                generator=self.rs) >= self.epsilon
         return torch.where(be_greedy, best_actions, random_actions)
-
+    
 class DiscreteModulePolicy(nn.Module, StochasticPolicy):
     """
     A stochastic policy for a discrete action space
@@ -196,3 +197,23 @@ class NormalModulePolicy(nn.Module, StochasticPolicy):
         means, stds = self.pi(states)
         stds = F.relu(stds) # Safety
         return distributions.Normal(means, stds)
+
+class FixedActionVectorPolicy(Policy):
+    """
+    Policy that emits the same action vector regardless of state.
+    """
+    def __init__(self, action_vector):
+        """
+        Params
+        ======
+        action (array): fixed action vector to emit
+        """
+        self.action_vector = torch.Tensor(action_vector)
+
+    def act(self, states):
+        if len(states.shape)==1: # single state
+            actions = self.action_vector
+        else:
+            actions = self.action_vector.repeat(states.shape[0], 1)
+        return actions
+    

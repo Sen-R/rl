@@ -175,5 +175,18 @@ class TestModulePolicies:
                 [len(self.states), self.action_size])
         assert (list(self.norm_policy.act(self.states).shape) ==
                 [len(self.states), self.action_size])
-        
-        
+
+
+
+@pytest.mark.parametrize("states", [[1., 0.], [[1., 0.]], [[1., 2.], [3., 4.]]])
+def test_fixed_action_vector_policy(states):
+    av = [1., 2., 3.]
+    states = torch.tensor(states)
+    policy = FixedActionVectorPolicy(av)
+    if len(states.shape)==1:
+        expected = torch.tensor(av)
+    else:
+        expected = torch.tensor([av] * states.shape[0])
+    assert torch.allclose(policy.act(states), expected)
+    
+    
