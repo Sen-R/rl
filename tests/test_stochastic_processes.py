@@ -39,8 +39,3 @@ def test_scramblers(scrambler):
     assert scrambled.shape == (1000, 4)
     assert np.all(scrambled <= 1.)
     assert np.all(scrambled >= -1.)
-
-def test_single_agent():
-    scrambler = GaussianWhiteNoiseScrambler(1, 4, 0.2, vector_actions=False)
-    scrambled = scrambler(np.random.rand(4))
-    assert scrambled.shape == (4,)
