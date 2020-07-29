@@ -14,6 +14,26 @@ class StochasticProcess(ABC):
         """
         pass
 
+class GaussianWhiteNoiseProcess(StochasticProcess):
+    """ Generate Gaussian white noise samples """
+    def __init__(self, mu, sigma, random_state=None):
+        """
+        Params
+        ======
+        mu (float or array): process mean
+        sigma (float or array): process std_dev
+        random_state (None, int, array_like, RandomState): (optional) random
+                                                           state
+        """
+        self.mu = mu
+        self.sigma = sigma
+        super().__init__(x_init=mu, random_state=random_state)
+
+    def sample(self):
+        """Draw next sample"""
+        self.x = self.rs.normal(self.mu, self.sigma)
+        return np.copy(self.x)
+
 class OUProcess(StochasticProcess):
     """ Generate samples from an OU process"""
 
