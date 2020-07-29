@@ -69,3 +69,41 @@ class OUProcess(StochasticProcess):
         dx = - self.theta * (self.x - self.x_inf) + self.sigma * dw
         self.x += dx
         return np.copy(self.x)
+
+class Scrambler(ABC):
+    """ ABC for classes that scramble actions by adding random noise """
+
+    @abstractmethod
+    def __call__(self, actions):
+        """ Implement to scramble actions """
+
+class AdditiveNoiseScrambler(Scrambler):
+    """
+    Class that adds a stochastic process to (continuous-valued) action
+    vectors and then clips output between `lb` and `ub`.
+    """
+    def __init__(self, process, lb=-1., ub=1.):
+        self.process = process
+        self.lb = lb
+        self.ub = ub
+
+    def __call__(self, actions):
+        actions += self.process.sample()
+        actions = actions.clip(self.lb, self.ub)
+        return actions
+
+class OUScrambler(AdditiveNoiseScrambler):
+    def __init__(self, num_agents, action_size, time_const, std_dev, lb=-1.,
+                 ub=1., random_state=None):
+        x_inf = np.zeros((num_agents, action_size))
+        process = OUProcess(x_inf, time_const, std_dev,
+                            random_state=random_state)
+        super().__init__(process, lb, ub)
+
+class GaussianWhiteNoiseScrambler(AdditiveNoiseScrambler):
+    def __init__(self, num_agents, action_size, std_dev, lb=-1., ub=1.,
+                 random_state=None):
+        mu = np.zeros((num_agents, action_size))
+        sigma = std_dev * np.zeros((num_agents, action_size))
+        process = GaussianWhiteNoiseProcess(mu, sigma, random_state)
+        super().__init__(process, lb, ub)

@@ -29,3 +29,13 @@ class TestGWNProcess:
     @pytest.mark.todo
     def test_bivariate_moments(self):
         pass
+
+@pytest.mark.todo # Need to strengthen this test
+@pytest.mark.parametrize('scrambler', [OUScrambler(1000, 4, 6, 0.2),
+                                       GaussianWhiteNoiseScrambler(1000, 4,
+                                                                   0.2)])
+def test_scramblers(scrambler):
+        scrambled = scrambler(np.random.rand(1000, 4))
+        assert scrambled.shape == (1000, 4)
+        assert np.all(scrambled <= 1.)
+        assert np.all(scrambled >= -1.)
