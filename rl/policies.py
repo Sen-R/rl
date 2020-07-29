@@ -198,7 +198,7 @@ class NormalModulePolicy(nn.Module, StochasticPolicy):
         stds = F.relu(stds) # Safety
         return distributions.Normal(means, stds)
 
-class FixedActionVectorPolicy(Policy):
+class FixedActionVectorPolicy(nn.Module, Policy):
     """
     Policy that emits the same action vector regardless of state.
     """
@@ -208,6 +208,7 @@ class FixedActionVectorPolicy(Policy):
         ======
         action (array): fixed action vector to emit
         """
+        super().__init__()
         self.action_vector = torch.Tensor(action_vector)
 
     def act(self, states):
