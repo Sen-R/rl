@@ -49,6 +49,32 @@ class TestTD0Experience:
             assert v.shape == e.shape
             assert np.array_equal(v, e)
 
+class TestRotatingList:
+    def test_basics(self):
+        l = RotatingList(2)
+        assert len(l.storage)==2
+        assert l.maxlen == 2
+        assert l.cursor == 0
+        assert l.len == 0
+        l.append('a')
+        assert repr(l)==repr(['a'])
+        l.append('b')
+        assert l.cursor == 0
+        assert l.len == 2
+        assert l.maxlen == 2
+        assert l.storage == ['a', 'b']
+        l.append('c')
+        assert l.cursor == 1
+        assert l.len == 2
+        assert l.maxlen == 2
+        assert l.storage == ['c', 'b']
+        assert l[1] == 'b'
+
+    def test_extend(self):
+        l = RotatingList(3)
+        l.extend(['a', 'b', 'c', 'd'])
+        assert l.storage == ['d', 'b', 'c']
+            
 class TestExperienceReplayBuffer:
     def test_basics(self):
         erb = ExperienceReplayBuffer(3)
@@ -69,7 +95,7 @@ class TestExperienceReplayBuffer:
         data = [1., 2., 3., 4., 5.]
         erb = ExperienceReplayBuffer(3)
         erb.record(data)
-        sample = erb.replay(8)
-        assert len(sample)==8
+        sample = erb.replay(2)
+        assert len(sample)==2
         assert len(set(sample) - set(data))==0
         

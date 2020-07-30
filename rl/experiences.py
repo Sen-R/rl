@@ -1,6 +1,7 @@
 from collections import deque
 from collections.abc import Iterable
 import numpy as np
+import random
 
 class TD0Experience:
     """ Class to encapsulate a single-step experience, e.g. for use in
@@ -49,6 +50,35 @@ class TD0Experience:
         return (TD0Experience(s, a, r, ns, d) for s, a, r, ns, d in
                 zip(states, actions, rewards, next_states, dones))
 
+class RotatingList:
+    """
+    Rotating list -- maybe faster than deque for random access
+    """
+    def __init__(self, maxlen):
+        self.storage = maxlen * [None]
+        self.maxlen = maxlen
+        self.cursor = 0
+        self.len = 0
+
+    def __len__(self):
+        return self.len
+
+    def __repr__(self):
+        return repr(self.storage[:self.len])
+
+    def __getitem__(self, idx):
+        return self.storage[idx]#[:self.len][idx]
+
+    def append(self, el):
+        self.storage[self.cursor] = el
+        self.len = min(self.maxlen, self.len+1)
+        self.cursor = (self.cursor + 1) % self.maxlen
+
+    def extend(self, seq):
+        for el in seq:
+            self.append(el)
+        
+    
 class ExperienceReplayBuffer:
     """
     Basic experience replay buffer. TODO: add prioritisation.
@@ -84,5 +114,6 @@ class ExperienceReplayBuffer:
         """
         Return a random sample of experiences, of length `sample_size`.
         """
-        return np.random.choice(self.buffer, sample_size)
+        ii = random.sample(range(len(self.buffer)), sample_size)
+        return [self.buffer[i] for i in ii]
         
