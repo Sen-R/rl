@@ -69,18 +69,19 @@ def train_agent(env, agent, num_episodes, weights_file,
     """
     scores = [] if previous_scores is None else previous_scores
     steps = len(scores)
-    start_t = time()
-    for i_episode in range(1, num_episodes+1):
-        agent_scores, ep_steps = play_episode(env, agent,
-                                              train_mode=True,
-                                              max_steps=max_steps)
+    for i_episode in range(1, num_episodes+1):#
+        start_t = time()
+        agent_scores, ep_steps = play_unity_episode(env, agent,
+                                                    train_mode=True,
+                                                    max_steps=max_steps)
+        step_rate = ep_steps / (time() - start_t)
         scores.append(np.mean(agent_scores))
         steps += ep_steps
         end_line = '\n' if (i_episode % 10 == 0) else ''
         running_ave_score = np.mean(scores[-over_how_many_eps:])
         print('\rEpisode {}/{} | Steps/s: {:.2f} | Ep score: {:.2f} | '
               '10-ave: {:.2f} | {}-ave: {:.2f}'
-              ''.format(i_episode, num_episodes, steps / (time() - start_t),
+              ''.format(i_episode, num_episodes, step_rate,
                         np.mean(agent_scores), np.mean(scores[-10:]),
                         over_how_many_eps, running_ave_score),
               end=end_line)
