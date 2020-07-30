@@ -58,8 +58,26 @@ class OUProcess(StochasticProcess):
             x_init = x_inf
         super().__init__(x_init, random_state)
         self.x_inf = x_inf
-        self.theta = 1 / time_const
-        self.sigma = std_dev * np.sqrt(2*self.theta)
+        #self.theta = 1 / time_const
+        #self.sigma = std_dev * np.sqrt(2*self.theta)
+        self.time_const = time_const
+        self.std_dev = std_dev
+
+    @property
+    def time_const(self):
+        return 1. / self.theta
+
+    @time_const.setter
+    def time_const(self, val):
+        self.theta = 1. / val
+
+    @property
+    def std_dev(self):
+        return self.sigma / np.sqrt(2. * self.theta)
+
+    @std_dev.setter
+    def std_dev(self, val):
+        self.sigma = val * np.sqrt(2. * self.theta)
 
     def sample(self):
         """
