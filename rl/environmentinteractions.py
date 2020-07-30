@@ -49,7 +49,8 @@ def play_unity_episode(env, agent, train_mode, max_steps=10000):
 
 def train_agent(env, agent, num_episodes, weights_file,
                 max_steps=10000, target_average_score=30,
-                over_how_many_eps=100, previous_scores=None):
+                over_how_many_eps=100, score_aggregator=np.mean,
+                previous_scores=None):
     """
     Train the agent. For this function `agent` should have a `LearningAgent`
     interface.
@@ -75,7 +76,7 @@ def train_agent(env, agent, num_episodes, weights_file,
                                                     train_mode=True,
                                                     max_steps=max_steps)
         step_rate = ep_steps / (time() - start_t)
-        scores.append(np.mean(agent_scores))
+        scores.append(score_aggregator(agent_scores))
         steps += ep_steps
         end_line = '\n' if (i_episode % 10 == 0) else ''
         running_ave_score = np.mean(scores[-over_how_many_eps:])
