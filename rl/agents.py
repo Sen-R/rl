@@ -219,9 +219,10 @@ class DDPGAgent(LearningAgent):
         states, actions, rewards, next_states, dones = exp_tuple
 
         # Estimate corresponding action values
-        Q_targets = sarsa_estimate(rewards, next_states, dones,
-                                   self.Q_target, self.policy_target,
-                                   discrete_actions=False)
+        with torch.no_grad():
+            Q_targets = sarsa_estimate(rewards, next_states, dones,
+                                       self.Q_target, self.policy_target,
+                                       discrete_actions=False)
 
         # Train Q and policy networks
         self.Q_trainer.train(Q_targets, states, actions)
