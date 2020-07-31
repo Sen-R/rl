@@ -12,9 +12,9 @@ class TestRandomAgent:
         assert actions.shape == (3, 4)
 
 class TestDDPGAgent:
-    def test_functional(self):
+    def test_functional(self, tmp_path):
         agent = DDPGAgent(2, 4, 1, FCActor, FCCritic, batch_size=2,
-                          update_after=0)
+                          update_after=2)
         action = agent.act(np.array([1., 2.]))
         assert action.shape == (4,)
         actions = agent.act(np.array([[1., 2.], [3., 4.]]))
@@ -29,3 +29,19 @@ class TestDDPGAgent:
         assert len(agent.buffer)==4
         print(agent.update_after)
         assert agent.time_to_learn
+        agent.save(str(tmp_path / "ddpg.pt"))
+        agent_l = DDPGAgent(2, 4, 1, FCActor, FCCritic, batch_size=2,
+                          update_after=2)
+        agent_l.load(str(tmp_path / "ddpg.pt"))
+        for s, l in zip(agent.policy.parameters(), agent_l.policy.parameters()):
+            assert torch.allclose(s, l)
+        for s, l in zip(agent.Q.parameters(), agent_l.Q.parameters()):
+            assert torch.allclose(s, l)
+        
+
+    def load_save(self):
+        agent_s = DDPGAgent(2, 4, 1, FCActor, FCCritic, batch_size=2,
+                            update_after=2)
+        agent_l = DDPGAgent(2, 4, 1, FCActor, FCCritic, batch_size=2,
+                            update_after=2)
+        
