@@ -108,8 +108,8 @@ def train_agent(env, agent, num_episodes, weights_file,
         end_line = '\n' if (i_episode % new_line_every == 0) else ''
         running_ave_score = np.mean(scores[-over_how_many_eps:])
         print('\rEpisode {:4}/{:4} | Steps: {:6} | Steps/s: {:3.2f} | '
-              'Ep score: {:2.2f} | '
-              '{}-ave: {:2.2f} | {}-ave: {:2.2f}'
+              'Ep score: {: 2.2f} | '
+              '{}-ave: {: 2.2f} | {}-ave: {: 2.2f}'
               ''.format(i_episode, num_episodes, steps, step_rate,
                         np.mean(agent_scores), new_line_every,
                         np.mean(scores[-new_line_every:]),
