@@ -161,7 +161,8 @@ class DDPGAgent(LearningAgent):
         lr_target (float): learning rate for target network
         l2_actor (float): L2 penalty for actor network weights
         l2_critic (float): L2 penalty for critic network weights
-        noise_std_dev (float): std dev of OU noise to add to action
+        noise_std_dev (float or callable): std dev of OU noise to add to action.
+            If callable, assumed to be a function of the number of steps.
         noise_time_const (float): time const for OU noise to add to action
         train_mode (bool): learn from experiences
         """

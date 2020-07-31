@@ -3,16 +3,21 @@ import numpy as np
 
 class StochasticProcess(ABC):
     """ ABC for stochastic process generators """
-    def __init__(self, x_init, random_state):
+    def __init__(self, t_init, x_init, random_state):
         self.rs = np.random.RandomState(random_state)
-        self.x = np.copy(x_init)   
+        self.x = np.copy(x_init)
+        self.t = t_init
     
-    @abstractmethod
     def sample(self):
         """
         Draw next sample
         """
-        pass
+        self.t += 1
+        return self._sample()
+
+    @abstractmethod
+    def _sample(self):
+        """ Implementation """
 
 class GaussianWhiteNoiseProcess(StochasticProcess):
     """ Generate Gaussian white noise samples """
@@ -27,9 +32,9 @@ class GaussianWhiteNoiseProcess(StochasticProcess):
         """
         self.mu = np.array(mu)
         self.sigma = np.array(sigma)
-        super().__init__(x_init=mu, random_state=random_state)
+        super().__init__(t_init=0, x_init=mu, random_state=random_state)
 
-    def sample(self):
+    def _sample(self):
         """Draw next sample"""
         self.x = self.rs.normal(self.mu, self.sigma)
         return np.copy(self.x)
@@ -56,35 +61,22 @@ class OUProcess(StochasticProcess):
         """
         if x_init is None:
             x_init = x_inf
-        super().__init__(x_init, random_state)
+        super().__init__(0, x_init, random_state)
         self.x_inf = x_inf
-        #self.theta = 1 / time_const
-        #self.sigma = std_dev * np.sqrt(2*self.theta)
         self.time_const = time_const
+        if isinstance(std_dev, (int, float)):
+            std_dev_const = std_dev
+            std_dev = lambda t: std_dev_const # allow for time-dependency
         self.std_dev = std_dev
 
-    @property
-    def time_const(self):
-        return 1. / self.theta
-
-    @time_const.setter
-    def time_const(self, val):
-        self.theta = 1. / val
-
-    @property
-    def std_dev(self):
-        return self.sigma / np.sqrt(2. * self.theta)
-
-    @std_dev.setter
-    def std_dev(self, val):
-        self.sigma = val * np.sqrt(2. * self.theta)
-
-    def sample(self):
+    def _sample(self):
         """
         Draw next sample
         """
+        theta = 1. / self.time_const
+        sigma = self.std_dev(self.t) * np.sqrt(2. * theta)
         dw = self.rs.normal(size=self.x.shape)
-        dx = - self.theta * (self.x - self.x_inf) + self.sigma * dw
+        dx = - theta * (self.x - self.x_inf) + sigma * dw
         self.x += dx
         return np.copy(self.x)
 
